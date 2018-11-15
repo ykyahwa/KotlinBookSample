@@ -11,14 +11,14 @@ import android.view.View
 import android.view.inputmethod.InputMethodManager
 import com.tistory.ykyahwa.kotlingithubbooksample.R
 import com.tistory.ykyahwa.kotlingithubbooksample.api.model.GithubRepo
-import com.tistory.ykyahwa.kotlingithubbooksample.api.model.RepoSearchResponse
 import com.tistory.ykyahwa.kotlingithubbooksample.api.provideGithubApi
+import com.tistory.ykyahwa.kotlingithubbooksample.extensions.plusAssign
 import com.tistory.ykyahwa.kotlingithubbooksample.ui.repo.RepositoryActivity
+import io.reactivex.Observable
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.disposables.CompositeDisposable
 import kotlinx.android.synthetic.main.activity_search.*
 import org.jetbrains.anko.startActivity
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
 
 class SearchActivity : AppCompatActivity(), SearchAdapter.ItemClickListener {
 
@@ -30,7 +30,7 @@ class SearchActivity : AppCompatActivity(), SearchAdapter.ItemClickListener {
 
     internal val api by lazy { provideGithubApi(this) }
 
-    internal var searchCall: Call<RepoSearchResponse>? = null
+    internal val disposables = CompositeDisposable()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -69,7 +69,7 @@ class SearchActivity : AppCompatActivity(), SearchAdapter.ItemClickListener {
 
     override fun onStop() {
         super.onStop()
-        searchCall?.run { cancel() }
+        disposables.clear()
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
@@ -89,37 +89,31 @@ class SearchActivity : AppCompatActivity(), SearchAdapter.ItemClickListener {
     }
 
     private fun searchRepository(query: String) {
-        clearResults()
-        hideError()
-        showProgress()
 
-        searchCall = api.searchRepository(query)
-        searchCall!!.enqueue(object : Callback<RepoSearchResponse> {
-            override fun onResponse(
-                call: Call<RepoSearchResponse>,
-                response: Response<RepoSearchResponse>
-            ) {
-                hideProgress()
-
-                val searchResult = response.body()
-                if (response.isSuccessful && null != searchResult) {
-                    with(adapter) {
-                        setItems(searchResult.items)
-                        notifyDataSetChanged()
-                    }
-                    if (0 == searchResult.totalCount) {
-                        showError(getString(R.string.no_search_result))
-                    }
+        disposables += api.searchRepository(query)
+            .flatMap {
+                if ( 0 == it.totalCount) {
+                    Observable.error(IllegalStateException("No result"))
                 } else {
-                    showError("Not successful: " + response.message())
+                    Observable.just(it.items)
                 }
             }
-
-            override fun onFailure(call: Call<RepoSearchResponse>, t: Throwable) {
-                hideProgress()
-                showError(t.message)
+            .observeOn(AndroidSchedulers.mainThread())
+            .doOnSubscribe {
+                clearResults()
+                hideError()
+                showProgress()
             }
-        })
+            .doOnTerminate { hideProgress() }
+            .subscribe({ items ->
+                with(adapter) {
+                    setItems(items)
+                    notifyDataSetChanged()
+                }
+            }) {
+                showError(it.message)
+            }
+
     }
 
     private fun updateTitle(query: String) {
