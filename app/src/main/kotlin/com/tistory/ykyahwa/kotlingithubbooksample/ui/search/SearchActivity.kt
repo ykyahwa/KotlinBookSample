@@ -9,6 +9,7 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.inputmethod.InputMethodManager
+import com.jakewharton.rxbinding2.support.v7.widget.queryTextChangeEvents
 import com.tistory.ykyahwa.kotlingithubbooksample.R
 import com.tistory.ykyahwa.kotlingithubbooksample.api.model.GithubRepo
 import com.tistory.ykyahwa.kotlingithubbooksample.api.provideGithubApi
@@ -32,6 +33,8 @@ class SearchActivity : AppCompatActivity(), SearchAdapter.ItemClickListener {
 
     internal val disposables = CompositeDisposable()
 
+    internal val viewDisposables = CompositeDisposable()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_search)
@@ -46,21 +49,18 @@ class SearchActivity : AppCompatActivity(), SearchAdapter.ItemClickListener {
         menuInflater.inflate(R.menu.menu_activity_search, menu)
         menuSearch = menu.findItem(R.id.menu_activity_search_query)
 
-        searchView = (menuSearch.actionView as SearchView).apply {
-            setOnQueryTextListener(object : SearchView.OnQueryTextListener {
-                override fun onQueryTextSubmit(query: String): Boolean {
-                    updateTitle(query)
-                    hideSoftKeyboard()
-                    collapseSearchView()
-                    searchRepository(query)
-                    return true
-                }
-
-                override fun onQueryTextChange(newText: String): Boolean {
-                    return false
-                }
-            })
-        }
+        viewDisposables += searchView.queryTextChangeEvents()
+            .filter { it.isSubmitted }
+            .map { it.queryText() }
+            .filter { it.isNotEmpty()}
+            .map { it.toString() }
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe { query ->
+                updateTitle(query)
+                hideSoftKeyboard()
+                collapseSearchView()
+                searchRepository(query)
+            }
 
         menuSearch.expandActionView()
 
@@ -70,6 +70,10 @@ class SearchActivity : AppCompatActivity(), SearchAdapter.ItemClickListener {
     override fun onStop() {
         super.onStop()
         disposables.clear()
+
+        if (isFinishing) {
+            viewDisposables.clear()
+        }
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
