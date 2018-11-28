@@ -10,10 +10,10 @@ import com.tistory.ykyahwa.kotlingithubbooksample.BuildConfig
 import com.tistory.ykyahwa.kotlingithubbooksample.R
 import com.tistory.ykyahwa.kotlingithubbooksample.api.provideAuthApi
 import com.tistory.ykyahwa.kotlingithubbooksample.data.AuthTokenProvider
+import com.tistory.ykyahwa.kotlingithubbooksample.extensions.AutoClearedDisposable
 import com.tistory.ykyahwa.kotlingithubbooksample.extensions.plusAssign
 import com.tistory.ykyahwa.kotlingithubbooksample.ui.main.MainActivity
 import io.reactivex.android.schedulers.AndroidSchedulers
-import io.reactivex.disposables.CompositeDisposable
 import kotlinx.android.synthetic.main.activity_sign_in.*
 import org.jetbrains.anko.clearTask
 import org.jetbrains.anko.intentFor
@@ -26,11 +26,13 @@ class SignInActivity : AppCompatActivity() {
 
     internal val authTokenProvider by lazy { AuthTokenProvider(this) }
 
-    internal val disposable = CompositeDisposable()
+    internal val disposable = AutoClearedDisposable(this)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_sign_in)
+
+        lifecycle += disposable
 
         btnActivitySignInStart.setOnClickListener {
             val authUri = Uri.Builder().scheme("https").authority("github.com")
@@ -63,7 +65,6 @@ class SignInActivity : AppCompatActivity() {
 
     override fun onStop() {
         super.onStop()
-        disposable.clear()
     }
     private fun getAccessToken(code: String) {
         disposable += api.getAccessToken(BuildConfig.GITHUB_CLIENT_ID, BuildConfig.GITHUB_CLIENT_SECRET, code)

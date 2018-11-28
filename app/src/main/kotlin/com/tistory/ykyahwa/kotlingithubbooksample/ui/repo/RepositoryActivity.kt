@@ -5,10 +5,10 @@ import android.support.v7.app.AppCompatActivity
 import android.view.View
 import com.tistory.ykyahwa.kotlingithubbooksample.R
 import com.tistory.ykyahwa.kotlingithubbooksample.api.provideGithubApi
+import com.tistory.ykyahwa.kotlingithubbooksample.extensions.AutoClearedDisposable
 import com.tistory.ykyahwa.kotlingithubbooksample.extensions.plusAssign
 import com.tistory.ykyahwa.kotlingithubbooksample.ui.GlideApp
 import io.reactivex.android.schedulers.AndroidSchedulers
-import io.reactivex.disposables.CompositeDisposable
 import kotlinx.android.synthetic.main.activity_repository.*
 import java.text.ParseException
 import java.text.SimpleDateFormat
@@ -29,12 +29,13 @@ class RepositoryActivity : AppCompatActivity() {
 
     internal val dateFormatToShow = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
 
-    internal val disposable = CompositeDisposable()
+    internal val disposable = AutoClearedDisposable(this)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_repository)
 
+        lifecycle += disposable
 
         val login =
             intent.getStringExtra(KEY_USER_LOGIN) ?: throw IllegalArgumentException("No login info exists in extras")
@@ -42,12 +43,6 @@ class RepositoryActivity : AppCompatActivity() {
             intent.getStringExtra(KEY_REPO_NAME) ?: throw IllegalArgumentException("No repo info exists in extras")
 
         showRepositoryInfo(login, repo)
-    }
-
-    override fun onStop() {
-        super.onStop()
-
-        disposable.clear()
     }
 
     private fun showRepositoryInfo(login: String, repoName: String) {

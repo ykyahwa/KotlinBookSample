@@ -23,8 +23,8 @@ ext {
     rxAndroidVersion = '2.0.1'
     rxJavaVersion = '2.1.3'
     rxBindingVersion = '2.0.0'
-//
-//    archComponentVersion = '1.0.0'
+
+    archComponentVersion = '1.0.0'
 //
 //    daggerVersion = '2.12'
 }

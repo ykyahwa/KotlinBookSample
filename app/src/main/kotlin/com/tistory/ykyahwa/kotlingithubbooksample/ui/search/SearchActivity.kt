@@ -13,11 +13,11 @@ import com.jakewharton.rxbinding2.support.v7.widget.queryTextChangeEvents
 import com.tistory.ykyahwa.kotlingithubbooksample.R
 import com.tistory.ykyahwa.kotlingithubbooksample.api.model.GithubRepo
 import com.tistory.ykyahwa.kotlingithubbooksample.api.provideGithubApi
+import com.tistory.ykyahwa.kotlingithubbooksample.extensions.AutoClearedDisposable
 import com.tistory.ykyahwa.kotlingithubbooksample.extensions.plusAssign
 import com.tistory.ykyahwa.kotlingithubbooksample.ui.repo.RepositoryActivity
 import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
-import io.reactivex.disposables.CompositeDisposable
 import kotlinx.android.synthetic.main.activity_search.*
 import org.jetbrains.anko.startActivity
 
@@ -31,13 +31,16 @@ class SearchActivity : AppCompatActivity(), SearchAdapter.ItemClickListener {
 
     internal val api by lazy { provideGithubApi(this) }
 
-    internal val disposables = CompositeDisposable()
+    internal val disposables = AutoClearedDisposable(this)
 
-    internal val viewDisposables = CompositeDisposable()
+    internal val viewDisposables = AutoClearedDisposable(lifeCycleOwner = this, alwaysClearOnStop = false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_search)
+
+        lifecycle += disposables
+        lifecycle += viewDisposables
 
         with(rvActivitySearchList) {
             layoutManager = LinearLayoutManager(this@SearchActivity)
@@ -65,15 +68,6 @@ class SearchActivity : AppCompatActivity(), SearchAdapter.ItemClickListener {
         menuSearch.expandActionView()
 
         return true
-    }
-
-    override fun onStop() {
-        super.onStop()
-        disposables.clear()
-
-        if (isFinishing) {
-            viewDisposables.clear()
-        }
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
