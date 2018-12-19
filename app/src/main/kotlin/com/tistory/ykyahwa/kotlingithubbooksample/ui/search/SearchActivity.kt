@@ -13,8 +13,10 @@ import com.jakewharton.rxbinding2.support.v7.widget.queryTextChangeEvents
 import com.tistory.ykyahwa.kotlingithubbooksample.R
 import com.tistory.ykyahwa.kotlingithubbooksample.api.model.GithubRepo
 import com.tistory.ykyahwa.kotlingithubbooksample.api.provideGithubApi
+import com.tistory.ykyahwa.kotlingithubbooksample.data.provideSearchHistoryDao
 import com.tistory.ykyahwa.kotlingithubbooksample.extensions.AutoClearedDisposable
 import com.tistory.ykyahwa.kotlingithubbooksample.extensions.plusAssign
+import com.tistory.ykyahwa.kotlingithubbooksample.extensions.runOnIoScheduler
 import com.tistory.ykyahwa.kotlingithubbooksample.ui.repo.RepositoryActivity
 import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
@@ -34,6 +36,8 @@ class SearchActivity : AppCompatActivity(), SearchAdapter.ItemClickListener {
     internal val disposables = AutoClearedDisposable(this)
 
     internal val viewDisposables = AutoClearedDisposable(lifeCycleOwner = this, alwaysClearOnStop = false)
+
+    internal val searchHistoryDao by lazy { provideSearchHistoryDao(this) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -79,6 +83,8 @@ class SearchActivity : AppCompatActivity(), SearchAdapter.ItemClickListener {
     }
 
     override fun onItemClick(repository: GithubRepo) {
+
+        disposables += runOnIoScheduler { searchHistoryDao.add(repository) }
 
         startActivity<RepositoryActivity>(
             RepositoryActivity.KEY_USER_LOGIN to repository.owner.login,
