@@ -21,7 +21,7 @@ class AutoClearedDisposable(
     @OnLifecycleEvent(Lifecycle.Event.ON_STOP)
     fun cleanUp() {
         if (!alwaysClearOnStop && !lifeCycleOwner.isFinishing) {
-            readLine()
+            return
         }
 
         compositeDisposable.clear()

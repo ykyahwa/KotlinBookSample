@@ -3,6 +3,7 @@ package com.tistory.ykyahwa.kotlingithubbooksample.ui.main
 import android.arch.lifecycle.Lifecycle
 import android.arch.lifecycle.LifecycleObserver
 import android.arch.lifecycle.OnLifecycleEvent
+import android.arch.lifecycle.ViewModelProviders
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.LinearLayoutManager
@@ -12,9 +13,9 @@ import android.view.View
 import com.tistory.ykyahwa.kotlingithubbooksample.R
 import com.tistory.ykyahwa.kotlingithubbooksample.api.model.GithubRepo
 import com.tistory.ykyahwa.kotlingithubbooksample.data.provideSearchHistoryDao
+import com.tistory.ykyahwa.kotlingithubbooksample.extensions.AutoActivatedDisposable
 import com.tistory.ykyahwa.kotlingithubbooksample.extensions.AutoClearedDisposable
 import com.tistory.ykyahwa.kotlingithubbooksample.extensions.plusAssign
-import com.tistory.ykyahwa.kotlingithubbooksample.extensions.runOnIoScheduler
 import com.tistory.ykyahwa.kotlingithubbooksample.ui.repo.RepositoryActivity
 import com.tistory.ykyahwa.kotlingithubbooksample.ui.search.SearchActivity
 import com.tistory.ykyahwa.kotlingithubbooksample.ui.search.SearchAdapter
@@ -32,11 +33,47 @@ class MainActivity : AppCompatActivity(), SearchAdapter.ItemClickListener {
 
     internal val disposable = AutoClearedDisposable(this)
 
+    internal val viewDisposable = AutoClearedDisposable(this, alwaysClearOnStop = false)
+
+    internal val viewModelFactory by lazy { MainViewModelFactory(provideSearchHistoryDao(this)) }
+
+    lateinit var viewModel: MainViewModel
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        viewModel = ViewModelProviders.of(this, viewModelFactory)[MainViewModel::class.java]
+
         lifecycle += disposable
+
+        lifecycle += viewDisposable
+        lifecycle += AutoActivatedDisposable(this) {
+            viewModel.searchHistory
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe { item ->
+                    with(adapter) {
+                        if (item.isEmpty) {
+                            clearItems()
+                        } else {
+                            setItems(item.value)
+                        }
+                        notifyDataSetChanged()
+                    }
+                }
+        }
+
+        viewDisposable += viewModel.message
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe { message ->
+                if (message.isEmpty) {
+                    hideMessage()
+                } else {
+                    showMessage(message.value)
+                }
+            }
+
         lifecycle += object : LifecycleObserver {
             @OnLifecycleEvent(Lifecycle.Event.ON_START)
             fun fetch() {
@@ -63,14 +100,10 @@ class MainActivity : AppCompatActivity(), SearchAdapter.ItemClickListener {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
 
         if (R.id.menu_activity_main_clear_all == item.itemId) {
-            clearAll()
+            disposable += viewModel.clearSearchHistory()
             return true
         }
         return super.onOptionsItemSelected(item)
-    }
-
-    private fun clearAll() {
-        disposable += runOnIoScheduler { searchHistoryDao.clearAll() }
     }
 
     private fun retchSearchHistory() : Disposable = searchHistoryDao.getHistory()

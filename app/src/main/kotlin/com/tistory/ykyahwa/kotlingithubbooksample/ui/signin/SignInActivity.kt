@@ -1,5 +1,6 @@
 package com.tistory.ykyahwa.kotlingithubbooksample.ui.signin
 
+import android.arch.lifecycle.ViewModelProviders
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -28,11 +29,45 @@ class SignInActivity : AppCompatActivity() {
 
     internal val disposable = AutoClearedDisposable(this)
 
+    internal val viewDisposable = AutoClearedDisposable(this, alwaysClearOnStop = false)
+
+    internal val viewModelFactory by lazy {
+        SignViewModelFactory(provideAuthApi(), AuthTokenProvider(this))
+    }
+
+    lateinit var viewModel: SignViewModel
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_sign_in)
 
+        viewModel = ViewModelProviders.of(this, viewModelFactory)[SignViewModel::class.java]
+
         lifecycle += disposable
+
+        lifecycle += viewDisposable
+
+        viewDisposable += viewModel.accessToken
+            .filter{!it.isEmpty}
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe { launchMainActivity() }
+
+        viewDisposable += viewModel.message
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe { message -> showError(message) }
+
+        viewDisposable += viewModel.isLoading
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe { isLoading ->
+                if (isLoading) {
+                    showProgress()
+                } else {
+                    hideProgress()
+                }
+            }
+
+        disposable += viewModel.loadAccessToken()
+
 
         btnActivitySignInStart.setOnClickListener {
             val authUri = Uri.Builder().scheme("https").authority("github.com")
@@ -66,18 +101,9 @@ class SignInActivity : AppCompatActivity() {
     override fun onStop() {
         super.onStop()
     }
+
     private fun getAccessToken(code: String) {
-        disposable += api.getAccessToken(BuildConfig.GITHUB_CLIENT_ID, BuildConfig.GITHUB_CLIENT_SECRET, code)
-            .map { it.accessToken }
-            .observeOn(AndroidSchedulers.mainThread())
-            .doOnSubscribe { showProgress() }
-            .doOnTerminate { hideProgress() }
-            .subscribe({ token ->
-                authTokenProvider.updateToken(token)
-                launchMainActivity()
-            }) {
-                showError(it)
-            }
+        disposable += viewModel.requestAccessToken(BuildConfig.GITHUB_CLIENT_ID, BuildConfig.GITHUB_CLIENT_SECRET, code)
     }
 
     private fun showProgress() {
@@ -92,6 +118,10 @@ class SignInActivity : AppCompatActivity() {
 
     private fun showError(throwable: Throwable) {
         longToast(throwable.message ?: "No Message")
+    }
+
+    private fun showError(message: String) {
+        longToast(message)
     }
 
     private fun launchMainActivity() {
