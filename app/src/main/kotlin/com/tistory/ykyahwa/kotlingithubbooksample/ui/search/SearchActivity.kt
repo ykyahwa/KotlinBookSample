@@ -13,34 +13,37 @@ import android.view.inputmethod.InputMethodManager
 import com.jakewharton.rxbinding2.support.v7.widget.queryTextChangeEvents
 import com.tistory.ykyahwa.kotlingithubbooksample.R
 import com.tistory.ykyahwa.kotlingithubbooksample.api.model.GithubRepo
-import com.tistory.ykyahwa.kotlingithubbooksample.api.provideGithubApi
-import com.tistory.ykyahwa.kotlingithubbooksample.data.provideSearchHistoryDao
 import com.tistory.ykyahwa.kotlingithubbooksample.extensions.AutoClearedDisposable
 import com.tistory.ykyahwa.kotlingithubbooksample.extensions.plusAssign
 import com.tistory.ykyahwa.kotlingithubbooksample.ui.repo.RepositoryActivity
+import dagger.android.support.DaggerAppCompatActivity
 import io.reactivex.android.schedulers.AndroidSchedulers
 import kotlinx.android.synthetic.main.activity_search.*
 import org.jetbrains.anko.startActivity
+import javax.inject.Inject
 
-class SearchActivity : AppCompatActivity(), SearchAdapter.ItemClickListener {
+class SearchActivity : DaggerAppCompatActivity(), SearchAdapter.ItemClickListener {
 
     internal lateinit var menuSearch: MenuItem
 
     internal lateinit var searchView: SearchView
 
-    internal val adapter by lazy { SearchAdapter().apply { setItemClickListener(this@SearchActivity) } }
-
-    internal val api by lazy { provideGithubApi(this) }
+//    internal val adapter by lazy { SearchAdapter().apply { setItemClickListener(this@SearchActivity) } }
 
     internal val disposables = AutoClearedDisposable(this)
 
     internal val viewDisposables = AutoClearedDisposable(lifeCycleOwner = this, alwaysClearOnStop = false)
 
-    internal val searchHistoryDao by lazy { provideSearchHistoryDao(this) }
+    @Inject lateinit var adapter: SearchAdapter
+    @Inject lateinit var viewModelFactory: SearchViewModelFactory
 
-    internal val viewModelFactory by lazy {
-        SearchViewModelFactory(provideGithubApi(this), provideSearchHistoryDao(this))
-    }
+
+//    internal val viewModelFactory by lazy {
+//        SearchViewModelFactory(githubApi, searchHistoryDao)
+//    }
+
+//    @Inject lateinit var githubApi: GithubApi
+//    @Inject lateinit var searchHistoryDao: SearchHistoryDao
 
     lateinit var viewModel: SearchViewModel
 

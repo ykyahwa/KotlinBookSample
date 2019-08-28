@@ -5,37 +5,42 @@ import android.arch.lifecycle.LifecycleObserver
 import android.arch.lifecycle.OnLifecycleEvent
 import android.arch.lifecycle.ViewModelProviders
 import android.os.Bundle
-import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.LinearLayoutManager
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import com.tistory.ykyahwa.kotlingithubbooksample.R
 import com.tistory.ykyahwa.kotlingithubbooksample.api.model.GithubRepo
-import com.tistory.ykyahwa.kotlingithubbooksample.data.provideSearchHistoryDao
+import com.tistory.ykyahwa.kotlingithubbooksample.db.SearchHistoryDao
 import com.tistory.ykyahwa.kotlingithubbooksample.extensions.AutoActivatedDisposable
 import com.tistory.ykyahwa.kotlingithubbooksample.extensions.AutoClearedDisposable
 import com.tistory.ykyahwa.kotlingithubbooksample.extensions.plusAssign
 import com.tistory.ykyahwa.kotlingithubbooksample.ui.repo.RepositoryActivity
 import com.tistory.ykyahwa.kotlingithubbooksample.ui.search.SearchActivity
 import com.tistory.ykyahwa.kotlingithubbooksample.ui.search.SearchAdapter
+import dagger.android.support.DaggerAppCompatActivity
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
 import kotlinx.android.synthetic.main.activity_main.*
 import org.jetbrains.anko.startActivity
+import javax.inject.Inject
 
-class MainActivity : AppCompatActivity(), SearchAdapter.ItemClickListener {
+class MainActivity : DaggerAppCompatActivity(), SearchAdapter.ItemClickListener {
 
-    internal val adapter by lazy { SearchAdapter().apply { setItemClickListener(this@MainActivity) } }
-
-    internal val searchHistoryDao by lazy { provideSearchHistoryDao(this) }
+//    internal val adapter by lazy { SearchAdapter().apply { setItemClickListener(this@MainActivity) } }
 
     internal val disposable = AutoClearedDisposable(this)
 
     internal val viewDisposable = AutoClearedDisposable(this, alwaysClearOnStop = false)
 
-    internal val viewModelFactory by lazy { MainViewModelFactory(provideSearchHistoryDao(this)) }
+    @Inject lateinit var adapter: SearchAdapter
+    @Inject lateinit var viewModelFactory: MainViewModelFactory
+//    internal val viewModelFactory by lazy {
+//        MainViewModelFactory(searchHistoryDao)
+//    }
+
+    @Inject lateinit var searchHistoryDao: SearchHistoryDao
 
     lateinit var viewModel: MainViewModel
 

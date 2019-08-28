@@ -55,7 +55,7 @@ private fun provideAuthTokenProvider(context: Context): AuthTokenProvider =
     AuthTokenProvider(context.applicationContext)
 
 
-internal class AuthInterceptor(private val token: String) : Interceptor {
+class AuthInterceptor(private val token: String) : Interceptor {
 
     @Throws(IOException::class)
     override fun intercept(chain: Interceptor.Chain): Response

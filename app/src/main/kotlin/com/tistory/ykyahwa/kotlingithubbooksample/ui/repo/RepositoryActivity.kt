@@ -5,26 +5,23 @@ import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.view.View
 import com.tistory.ykyahwa.kotlingithubbooksample.R
-import com.tistory.ykyahwa.kotlingithubbooksample.api.provideGithubApi
 import com.tistory.ykyahwa.kotlingithubbooksample.extensions.AutoClearedDisposable
 import com.tistory.ykyahwa.kotlingithubbooksample.extensions.plusAssign
 import com.tistory.ykyahwa.kotlingithubbooksample.ui.GlideApp
+import dagger.android.support.DaggerAppCompatActivity
 import io.reactivex.android.schedulers.AndroidSchedulers
 import kotlinx.android.synthetic.main.activity_repository.*
 import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.*
+import javax.inject.Inject
 
-class RepositoryActivity : AppCompatActivity() {
+class RepositoryActivity : DaggerAppCompatActivity() {
 
     companion object {
         const val KEY_USER_LOGIN = "user_login"
         const val KEY_REPO_NAME = "repo_name"
     }
-
-    internal val api by lazy { provideGithubApi(this) }
-
-//    internal var repoCall: Call<GithubRepo>? = null
 
     internal val dateFormatInResponse = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssX", Locale.getDefault())
 
@@ -34,9 +31,7 @@ class RepositoryActivity : AppCompatActivity() {
 
     internal val viewDisposable = AutoClearedDisposable(this, alwaysClearOnStop = false)
 
-    internal val viewModelFactory by lazy {
-        RepositoryViewModelFactory(provideGithubApi(this))
-    }
+    @Inject lateinit var viewModelFactory: RepositoryViewModelFactory
 
     lateinit var viewModel: RepositoryViewModel
 

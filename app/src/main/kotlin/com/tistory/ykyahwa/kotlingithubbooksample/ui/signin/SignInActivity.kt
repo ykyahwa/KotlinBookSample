@@ -5,35 +5,30 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.support.customtabs.CustomTabsIntent
-import android.support.v7.app.AppCompatActivity
 import android.view.View
 import com.tistory.ykyahwa.kotlingithubbooksample.BuildConfig
 import com.tistory.ykyahwa.kotlingithubbooksample.R
-import com.tistory.ykyahwa.kotlingithubbooksample.api.provideAuthApi
-import com.tistory.ykyahwa.kotlingithubbooksample.data.AuthTokenProvider
 import com.tistory.ykyahwa.kotlingithubbooksample.extensions.AutoClearedDisposable
 import com.tistory.ykyahwa.kotlingithubbooksample.extensions.plusAssign
 import com.tistory.ykyahwa.kotlingithubbooksample.ui.main.MainActivity
+import dagger.android.support.DaggerAppCompatActivity
 import io.reactivex.android.schedulers.AndroidSchedulers
 import kotlinx.android.synthetic.main.activity_sign_in.*
 import org.jetbrains.anko.clearTask
 import org.jetbrains.anko.intentFor
 import org.jetbrains.anko.longToast
 import org.jetbrains.anko.newTask
+import javax.inject.Inject
 
-class SignInActivity : AppCompatActivity() {
-
-    internal val api by lazy {  provideAuthApi() }
-
-    internal val authTokenProvider by lazy { AuthTokenProvider(this) }
+class SignInActivity : DaggerAppCompatActivity() {
 
     internal val disposable = AutoClearedDisposable(this)
 
     internal val viewDisposable = AutoClearedDisposable(this, alwaysClearOnStop = false)
 
-    internal val viewModelFactory by lazy {
-        SignViewModelFactory(provideAuthApi(), AuthTokenProvider(this))
-    }
+    @Inject lateinit var viewModelFactory: SignViewModelFactory
+
+//    @Inject lateinit var authTokenProvider: AuthTokenProvider
 
     lateinit var viewModel: SignViewModel
 
@@ -80,10 +75,10 @@ class SignInActivity : AppCompatActivity() {
             val intent = CustomTabsIntent.Builder().build()
             intent.launchUrl(this@SignInActivity, authUri)
         }
-
-        if (null != authTokenProvider.token) {
-            launchMainActivity()
-        }
+//
+//        if (null != authTokenProvider.token) {
+//            launchMainActivity()
+//        }
     }
 
     override fun onNewIntent(intent: Intent) {
